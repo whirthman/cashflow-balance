@@ -1,0 +1,1899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Balance Manager</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* Base Styles */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f8f9fa; /* Lighter background */
+            color: #343a40; /* Darker text */
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* Dark Mode */
+        body.dark {
+            background: #1e1e1e;
+            color: #e0e0e0;
+        }
+
+        header {
+            background: #4a69bd; /* A more vibrant blue */
+            color: white;
+            text-align: center;
+            padding: 1.2rem 1rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-grow: 1; /* Allow heading to take available space */
+        }
+        header button {
+            width: auto;
+            padding: 0.6rem 1rem;
+            font-size: 0.9rem;
+            margin: 0; /* Override global button margin */
+        }
+
+
+        .container {
+            max-width: 1000px;
+            margin: 20px auto; /* More vertical margin */
+            padding: 0 1rem;
+        }
+
+        /* Form & Input Styles */
+        input, select, button, textarea {
+            width: 100%;
+            padding: 0.8rem; /* More padding */
+            margin: 0.5rem 0; /* More margin */
+            border-radius: 8px; /* Softer corners */
+            border: 1px solid #ced4da; /* Lighter border */
+            font-size: 1rem;
+            background-color: white;
+            color: #343a40;
+        }
+        input[type="date"] {
+            padding: 0.7rem; /* Slightly less padding for date input */
+        }
+        input[readonly] {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+        body.dark input[readonly] {
+            background-color: #444;
+        }
+
+
+        body.dark input,
+        body.dark select,
+        body.dark textarea {
+            background-color: #333;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        button {
+            cursor: pointer;
+            background: #4a69bd;
+            color: white;
+            border: none;
+            transition: background 0.3s ease, transform 0.2s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background: #3c5aa6;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .danger {
+            background: #dc3545; /* Bootstrap red */
+        }
+
+        .danger:hover {
+            background: #c82333;
+        }
+
+        /* Card Styles */
+        .card {
+            background: white;
+            border-radius: 12px; /* More rounded */
+            padding: 1.5rem; /* More padding */
+            margin: 1.5rem 0; /* More margin */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Stronger, softer shadow */
+            position: relative;
+        }
+
+        body.dark .card {
+            background: #2a2a2a;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: #4a69bd;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        body.dark h2 {
+            color: #7da5ea;
+            border-bottom-color: #444;
+        }
+
+        /* Controls / Action Buttons */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px; /* More space */
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+
+        .controls button {
+            flex: 1;
+            min-width: 150px; /* Slightly wider */
+            padding: 0.9rem;
+        }
+
+        /* Account Header */
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .account-header img {
+            width: 60px; /* Larger image */
+            height: 60px;
+            object-fit: cover; /* Cover instead of contain */
+            margin-right: 15px;
+            border-radius: 50%; /* Circular images */
+            border: 2px solid #ced4da;
+            padding: 3px;
+        }
+
+        body.dark .account-header img {
+            border-color: #555;
+        }
+
+        .account-title {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .account-title h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #343a40;
+        }
+
+        body.dark .account-title h3 {
+            color: #e0e0e0;
+        }
+
+        .account-header strong {
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .account-actions-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end; /* Align to right */
+        }
+        .account-actions-row button {
+            flex: 0 0 auto; /* Don't grow, don't shrink, base on content */
+            width: auto; /* Override 100% width */
+            padding: 0.5rem 1rem; /* Smaller padding for these buttons */
+            font-size: 0.9rem;
+        }
+
+
+        /* Transactions History (Centralized) */
+        #allTransactionsHistory .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #f1f3f5;
+            font-size: 0.95rem;
+        }
+
+        body.dark #allTransactionsHistory .transaction-item {
+            border-bottom-color: #3b3b3b;
+        }
+
+        #allTransactionsHistory .transaction-item:last-child {
+            border-bottom: none;
+        }
+
+        #allTransactionsHistory .transaction-item .details {
+            flex-grow: 1;
+        }
+
+        #allTransactionsHistory .transaction-item small {
+            color: #6c757d;
+            font-size: 0.85rem;
+            display: block; /* Newline for date */
+            margin-top: 4px;
+        }
+
+        body.dark #allTransactionsHistory .transaction-item small {
+            color: #bbb;
+        }
+
+        #allTransactionsHistory .transaction-note {
+            font-style: italic;
+            color: #5f6b76;
+            margin-top: 2px;
+        }
+
+        body.dark #allTransactionsHistory .transaction-note {
+            color: #a0a0a0;
+        }
+
+        .history-pagination {
+            text-align: center;
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .history-pagination button {
+            width: auto;
+            flex-grow: 0;
+            padding: 0.6rem 1rem;
+            font-size: 0.9rem;
+        }
+
+
+        /* Chart Styles */
+        .chart-container {
+            width: 100% !important;
+            height: auto !important;
+            max-height: 350px; /* Slightly taller charts */
+            display: block;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark .chart-container {
+            background: #2a2a2a;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Chart Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 1rem;
+            overflow-x: auto; /* Allow horizontal scroll if many tabs */
+        }
+        body.dark .tabs {
+            border-bottom-color: #444;
+        }
+
+        .tab-button {
+            padding: 10px 15px;
+            border: none;
+            background-color: transparent;
+            font-size: 1rem;
+            cursor: pointer;
+            outline: none;
+            transition: color 0.3s, border-bottom 0.3s;
+            color: #6c757d;
+            white-space: nowrap; /* Prevent wrapping */
+        }
+
+        .tab-button:hover {
+            color: #4a69bd;
+        }
+
+        .tab-button.active {
+            color: #4a69bd;
+            border-bottom: 2px solid #4a69bd;
+            font-weight: 600;
+        }
+        body.dark .tab-button.active {
+            color: #7da5ea;
+            border-bottom-color: #7da5ea;
+        }
+
+        .tab-content {
+            display: none; /* Hide all tab content by default */
+        }
+        .tab-content.active {
+            display: block; /* Show active tab content */
+        }
+
+        /* Account Creation Specific Styles */
+        #createAccountSection { /* This section is now replaced by createAccountModal */
+            display: none;
+        }
+
+        #addNewAccountButtonContainer {
+            text-align: center;
+            margin: 1.5rem 0;
+        }
+
+        #addNewAccountButton {
+            padding: 0.9rem 1.5rem;
+            font-size: 1.1rem;
+            background-color: #28a745; /* Green for add new */
+            color: white;
+            border-radius: 8px;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        #addNewAccountButton:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
+        /* Total Balance Section */
+        .total-balance-card {
+            background: linear-gradient(135deg, #6a82fb, #fc5c7d); /* Gradient background */
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .total-balance-card h2 {
+            color: white;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            font-size: 2rem;
+            justify-content: center;
+        }
+        .total-balance-card p {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin: 0;
+            line-height: 1;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0, 0, 0, 0.5); /* Black w/ opacity */
+            align-items: center; /* Center content vertically */
+            justify-content: center; /* Center content horizontally */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 500px; /* Limit modal width */
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        body.dark .modal-content {
+            background-color: #2a2a2a;
+            border-color: #444;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: #333;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        body.dark .close-button:hover,
+        body.dark .close-button:focus {
+            color: #eee;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: #4a69bd;
+            font-size: 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        body.dark .modal-content h3 {
+            color: #7da5ea;
+            border-bottom-color: #444;
+        }
+
+        .modal-content select,
+        .modal-content input[type="number"],
+        .modal-content textarea {
+            margin-bottom: 15px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .modal-buttons button {
+            width: auto;
+            flex-grow: 0;
+            padding: 0.7rem 1.2rem;
+            font-size: 1rem;
+        }
+        .modal-buttons .cancel-btn {
+            background-color: #6c757d;
+        }
+        .modal-buttons .cancel-btn:hover {
+            background-color: #5a6268;
+        }
+
+
+        /* History Log Sorting & Filtering (Centralized) */
+        .history-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 1rem;
+            align-items: end; /* Align items to the bottom of their grid cell */
+        }
+        .history-controls div {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .history-controls label {
+            font-weight: 600;
+            color: #343a40;
+            white-space: nowrap;
+            font-size: 0.95rem;
+        }
+        body.dark .history-controls label {
+            color: #e0e0e0;
+        }
+        .history-controls select,
+        .history-controls input[type="date"] {
+            margin: 0; /* Remove default margin */
+            width: 100%;
+            padding: 0.6rem;
+        }
+        .history-controls button {
+            margin-top: auto; /* Push button to the bottom if column height varies */
+            padding: 0.7rem;
+            font-size: 0.95rem;
+        }
+
+        /* Mobile specific styles */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: row; /* Keep header items in a row */
+                justify-content: space-between; /* Space out items */
+                padding: 0.8rem 1rem;
+            }
+            header h1 {
+                font-size: 1.4rem;
+                text-align: left;
+                flex-grow: 1; /* Allow heading to grow */
+            }
+            header #mobileActionsButton {
+                display: block; /* Show on mobile */
+                margin-left: 10px; /* Space from heading */
+                padding: 0.6rem 0.9rem;
+                font-size: 0.9rem;
+            }
+            .controls {
+                display: none; /* Hide desktop controls on mobile */
+            }
+
+            .history-controls {
+                display: none; /* Hide desktop filters on mobile */
+            }
+            #mobileFilterButtonContainer {
+                display: block; /* Show filter button on mobile */
+                text-align: center;
+                margin-bottom: 1rem;
+            }
+            #mobileFilterButton {
+                width: auto;
+                padding: 0.8rem 1.5rem;
+                font-size: 1rem;
+            }
+
+            .container {
+                margin: 15px auto;
+            }
+            .account-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .account-title {
+                width: 100%;
+                justify-content: center;
+            }
+            .account-title h3 {
+                font-size: 1.3rem;
+            }
+            .account-header strong {
+                font-size: 1.4rem;
+                width: 100%;
+                text-align: center;
+            }
+            .account-header img {
+                width: 50px;
+                height: 50px;
+                margin-right: 10px;
+            }
+            h2 {
+                font-size: 1.5rem;
+            }
+            .card {
+                padding: 1rem;
+            }
+            .transaction-item {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 0.8rem 0;
+            }
+            .transaction-item .amount {
+                width: 100%;
+                text-align: left;
+                margin-top: 5px;
+            }
+            .total-balance-card p {
+                font-size: 2.2rem;
+            }
+            .tabs {
+                flex-direction: column;
+                align-items: center;
+            }
+            .tab-button {
+                width: 100%;
+                text-align: center;
+                border-bottom: none;
+            }
+            .tab-button.active {
+                border-bottom: none;
+                border-left: 2px solid #4a69bd;
+            }
+            body.dark .tab-button.active {
+                border-bottom: none;
+                border-left-color: #7da5ea;
+            }
+        }
+
+        /* Desktop specific styles (default) */
+        @media (min-width: 769px) {
+            header #mobileActionsButton {
+                display: none; /* Hide on desktop */
+            }
+            #mobileFilterButtonContainer {
+                display: none; /* Hide filter button on desktop */
+            }
+        }
+
+
+        /* FontAwesome Icons */
+        .fas {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><i class="fas fa-wallet"></i> Account Balance Manager</h1>
+        <button onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
+        <button id="mobileActionsButton" onclick="openModal('actionButtonsModal')"><i class="fas fa-bars"></i> Actions</button>
+    </header>
+
+    <div class="container">
+        <!-- Total Balance Section -->
+        <div class="card total-balance-card">
+            <h2><i class="fas fa-money-check-alt"></i> Total Net Balance</h2>
+            <p id="totalBalance">GHS 0.00</p>
+        </div>
+
+        <!-- Desktop Controls -->
+        <div class="controls" id="desktopControls">
+            <button onclick="openTransactionModal('deposit')"><i class="fas fa-plus-circle"></i> Deposit Funds</button>
+            <button onclick="openTransactionModal('withdraw')"><i class="fas fa-minus-circle"></i> Withdraw Funds</button>
+            <button onclick="openTransferModal()"><i class="fas fa-exchange-alt"></i> Transfer Funds</button>
+            <button onclick="exportCSV()"><i class="fas fa-file-csv"></i> Export CSV</button>
+            <button onclick="exportPDF()"><i class="fas fa-file-pdf"></i> Export PDF</button>
+            <button onclick="resetAll()" class="danger"><i class="fas fa-trash-alt"></i> Reset All</button>
+        </div>
+
+        <!-- Create/Edit Account Form Modal -->
+        <div id="createAccountModal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeModal('createAccountModal')">&times;</span>
+                <h3 id="createAccountModalTitle"></h3>
+                <input type="hidden" id="editAccountIndex">
+                <label for="accName">Account Name:</label>
+                <input type="text" id="accName" placeholder="e.g. MoMo Wallet">
+                <label for="accBalance">Initial Balance (GHS):</label>
+                <input type="number" id="accBalance" placeholder="Initial Balance (GHS)" value="0" min="0">
+                <label for="accImage">Account Logo (Optional):</label>
+                <input type="file" id="accImage" accept="image/*">
+                <div class="modal-buttons">
+                    <button class="cancel-btn" onclick="closeModal('createAccountModal')">Cancel</button>
+                    <button id="createAccountConfirmBtn" onclick="saveAccountDetails()"><i class="fas fa-coins"></i> Confirm</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Action Buttons Modal -->
+        <div id="actionButtonsModal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeModal('actionButtonsModal')">&times;</span>
+                <h3><i class="fas fa-bars"></i> Actions</h3>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button onclick="openTransactionModal('deposit'); closeModal('actionButtonsModal');"><i class="fas fa-plus-circle"></i> Deposit Funds</button>
+                    <button onclick="openTransactionModal('withdraw'); closeModal('actionButtonsModal');"><i class="fas fa-minus-circle"></i> Withdraw Funds</button>
+                    <button onclick="openTransferModal(); closeModal('actionButtonsModal');"><i class="fas fa-exchange-alt"></i> Transfer Funds</button>
+                    <button onclick="exportCSV(); closeModal('actionButtonsModal');"><i class="fas fa-file-csv"></i> Export CSV</button>
+                    <button onclick="exportPDF(); closeModal('actionButtonsModal');"><i class="fas fa-file-pdf"></i> Export PDF</button>
+                    <button onclick="resetAllAndCloseModal();" class="danger"><i class="fas fa-trash-alt"></i> Reset All</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transfer Funds Modal -->
+        <div id="transferModal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeModal('transferModal')">&times;</span>
+                <h3><i class="fas fa-exchange-alt"></i> Transfer Funds</h3>
+                <label for="transferFromAccount">From Account:</label>
+                <select id="transferFromAccount"></select>
+
+                <label for="transferToAccount">To Account:</label>
+                <select id="transferToAccount"></select>
+
+                <label for="transferAmount">Amount (GHS):</label>
+                <input type="number" id="transferAmount" placeholder="Enter amount to transfer">
+
+                <label for="transferNote">Note (Optional):</label>
+                <textarea id="transferNote" placeholder="e.g., Moving savings, Paying back friend" rows="2"></textarea>
+
+                <div class="modal-buttons">
+                    <button class="cancel-btn" onclick="closeModal('transferModal')">Cancel</button>
+                    <button onclick="confirmTransfer()"><i class="fas fa-check-circle"></i> Confirm Transfer</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Button to add new accounts after the first one is created -->
+        <div id="addNewAccountButtonContainer" style="text-align: center; margin: 1.5rem 0; display: none;">
+            <button id="addNewAccountButton" onclick="openCreateAccountModal('new')"><i class="fas fa-folder-plus"></i> Add New Account</button>
+        </div>
+
+        <h2><i class="fas fa-university"></i> Accounts Overview</h2>
+        <select id="sortSelect" onchange="updateUI()">
+            <option value="none">🔀 Sort Accounts</option>
+            <option value="name">Name (A-Z)</option>
+            <option value="high">Balance: High to Low</option>
+            <option value="low">Balance: Low to High</option>
+        </select>
+
+        <div id="accountList"></div>
+
+        ---
+
+        <div class="card">
+            <h2><i class="fas fa-clipboard-list"></i> All Transactions History</h2>
+
+            <!-- Desktop History Controls -->
+            <div class="history-controls" id="desktopHistoryControls">
+                <div>
+                    <label for="filterAccount">Account:</label>
+                    <select id="filterAccount" onchange="filterAndDisplayAllTransactions()"></select>
+                </div>
+                <div>
+                    <label for="filterType">Type:</label>
+                    <select id="filterType" onchange="filterAndDisplayAllTransactions()">
+                        <option value="all">All</option>
+                        <option value="deposit">Deposit</option>
+                        <option value="withdraw">Withdraw</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filterStartDate">From Date:</label>
+                    <input type="date" id="filterStartDate" onchange="filterAndDisplayAllTransactions()">
+                </div>
+                <div>
+                    <label for="filterEndDate">To Date:</label>
+                    <input type="date" id="filterEndDate" onchange="filterAndDisplayAllTransactions()">
+                </div>
+                <div>
+                    <label for="sortHistory">Sort By:</label>
+                    <select id="sortHistory" onchange="filterAndDisplayAllTransactions()">
+                        <option value="dateDesc">Date (Newest First)</option>
+                        <option value="dateAsc">Date (Oldest First)</option>
+                        <option value="amountDesc">Amount (High to Low)</option>
+                        <option value="amountAsc">Amount (Low to High)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="logLimitSelect">Show:</label>
+                    <select id="logLimitSelect" onchange="setTransactionDisplayLimit(this.value); filterAndDisplayAllTransactions();">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <button onclick="clearAllHistoryFilters()"><i class="fas fa-eraser"></i> Clear Filters</button>
+            </div>
+
+            <!-- Mobile History Filter Button -->
+            <div id="mobileFilterButtonContainer">
+                <button id="mobileFilterButton" onclick="openModal('filterModal')"><i class="fas fa-filter"></i> Filter History</button>
+            </div>
+
+            <div id="allTransactionsHistory"></div>
+            <div id="historyPagination" class="history-pagination"></div>
+        </div>
+
+        ---
+
+        <div class="card">
+            <h2><i class="fas fa-chart-pie"></i> Financial Insights</h2>
+            <div class="tabs">
+                <button class="tab-button active" onclick="openChartTab(event, 'monthlyTrendChart')">Monthly Trend</button>
+                <button class="tab-button" onclick="openChartTab(event, 'accountComparisonChart')">Account Comparison</button>
+            </div>
+
+            <div id="monthlyTrendChart" class="tab-content active chart-container">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+
+            <div id="accountComparisonChart" class="tab-content chart-container">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Modal (Deposit/Withdraw) -->
+    <div id="transactionModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('transactionModal')">&times;</span>
+            <h3 id="modalTitle"></h3>
+            <label for="modalAccountSelect">Select Account:</label>
+            <select id="modalAccountSelect"></select>
+
+            <label for="modalAmount">Amount (GHS):</label>
+            <input type="number" id="modalAmount" placeholder="Enter amount">
+
+            <label for="modalNote">Note (Optional):</label>
+            <textarea id="modalNote" placeholder="e.g., Groceries, Salary, Rent" rows="2"></textarea>
+
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeModal('transactionModal')">Cancel</button>
+                <button id="modalConfirmBtn" onclick="">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Filter Modal -->
+    <div id="filterModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('filterModal')">&times;</span>
+            <h3><i class="fas fa-filter"></i> Filter Transactions</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div>
+                    <label for="filterAccountModal">Account:</label>
+                    <select id="filterAccountModal" onchange="applyMobileFilter('account')"></select>
+                </div>
+                <div>
+                    <label for="filterTypeModal">Type:</label>
+                    <select id="filterTypeModal" onchange="applyMobileFilter('type')">
+                        <option value="all">All</option>
+                        <option value="deposit">Deposit</option>
+                        <option value="withdraw">Withdraw</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filterStartDateModal">From Date:</label>
+                    <input type="date" id="filterStartDateModal" onchange="applyMobileFilter('startDate')">
+                </div>
+                <div>
+                    <label for="filterEndDateModal">To Date:</label>
+                    <input type="date" id="filterEndDateModal" onchange="applyMobileFilter('endDate')">
+                </div>
+                <div>
+                    <label for="sortHistoryModal">Sort By:</label>
+                    <select id="sortHistoryModal" onchange="applyMobileFilter('sort')">
+                        <option value="dateDesc">Date (Newest First)</option>
+                        <option value="dateAsc">Date (Oldest First)</option>
+                        <option value="amountDesc">Amount (High to Low)</option>
+                        <option value="amountAsc">Amount (Low to High)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="logLimitSelectModal">Show:</label>
+                    <select id="logLimitSelectModal" onchange="setTransactionDisplayLimit(this.value); filterAndDisplayAllTransactions();">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <button onclick="clearAllHistoryFilters(); closeModal('filterModal');"><i class="fas fa-eraser"></i> Clear Filters</button>
+                <button onclick="closeModal('filterModal')">Done</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script>
+        // Load accounts immediately from localStorage or initialize as empty array
+        let accounts = JSON.parse(localStorage.getItem("accounts") || "[]");
+        let monthlyChartInstance;
+        let comparisonChartInstance;
+        let sortedAccountsForOverview = []; // To store accounts as they are sorted for overview display
+
+        // Determine initial display limit based on device
+        let isMobileView = window.matchMedia("(max-width: 768px)").matches; // Use let for re-assignment
+        let transactionDisplayLimit = isMobileView ? 5 : 10;
+
+
+        // --- Core Data & Persistence ---
+
+        function saveAccounts() {
+            localStorage.setItem("accounts", JSON.stringify(accounts));
+        }
+
+        // --- UI Control Functions ---
+
+        function toggleDarkMode() {
+            document.body.classList.toggle("dark");
+            // Update chart colors on dark mode toggle
+            const isDarkMode = document.body.classList.contains('dark');
+            const textColor = isDarkMode ? '#e0e0e0' : '#343a40';
+            const gridColor = isDarkMode ? 'rgba(200, 200, 200, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+            if (monthlyChartInstance) {
+                monthlyChartInstance.options.scales.x.ticks.color = textColor;
+                monthlyChartInstance.options.scales.y.ticks.color = textColor;
+                monthlyChartInstance.options.scales.x.grid.color = gridColor;
+                monthlyChartInstance.options.scales.y.grid.color = gridColor;
+                monthlyChartInstance.options.scales.x.title.color = textColor;
+                monthlyChartInstance.options.scales.y.title.color = textColor;
+                monthlyChartInstance.options.plugins.legend.labels.color = textColor;
+                monthlyChartInstance.update();
+            }
+            if (comparisonChartInstance) {
+                comparisonChartInstance.options.scales.x.ticks.color = textColor;
+                comparisonChartInstance.options.scales.y.ticks.color = textColor;
+                comparisonChartInstance.options.scales.x.grid.color = gridColor;
+                comparisonChartInstance.options.scales.y.grid.color = gridColor;
+                comparisonChartInstance.options.scales.x.title.color = textColor;
+                comparisonChartInstance.options.scales.y.title.color = textColor;
+                comparisonChartInstance.options.plugins.legend.labels.color = textColor;
+                comparisonChartInstance.update();
+            }
+        }
+
+        function openCreateAccountModal(mode, index = null) {
+            const modal = document.getElementById('createAccountModal');
+            const modalTitle = document.getElementById('createAccountModalTitle');
+            const accNameInput = document.getElementById('accName');
+            const accBalanceInput = document.getElementById('accBalance');
+            const accImageInput = document.getElementById('accImage');
+            const editAccountIndexInput = document.getElementById('editAccountIndex');
+            const confirmBtn = document.getElementById('createAccountConfirmBtn');
+
+            accImageInput.value = ""; // Clear file input value always
+
+            if (mode === 'new') {
+                modalTitle.innerHTML = '<i class="fas fa-user-plus"></i> Create New Account';
+                accNameInput.value = "";
+                accBalanceInput.value = "0";
+                accBalanceInput.readOnly = false; // Editable for new accounts
+                accBalanceInput.placeholder = "Initial Balance (GHS)";
+                editAccountIndexInput.value = ""; // No index for new account
+                confirmBtn.innerHTML = '<i class="fas fa-coins"></i> Create Account';
+            } else if (mode === 'edit' && index !== null) {
+                const account = accounts[index];
+                modalTitle.innerHTML = `<i class="fas fa-edit"></i> Edit Account: ${account.name}`;
+                accNameInput.value = account.name;
+                accBalanceInput.value = account.balance.toFixed(2);
+                accBalanceInput.readOnly = true; // Strict: Balance cannot be edited directly
+                accBalanceInput.placeholder = "Balance (Not editable directly)";
+                editAccountIndexInput.value = index; // Store index for update
+                confirmBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+            }
+            modal.style.display = 'flex';
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function openTransactionModal(type) {
+            const modal = document.getElementById('transactionModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalAccountSelect = document.getElementById('modalAccountSelect');
+            const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+
+            modalAccountSelect.innerHTML = ''; // Clear previous options
+            if (accounts.length === 0) {
+                alert("Please create an account first before making transactions.");
+                // Ensure actionButtonsModal is closed if opened
+                if (document.getElementById('actionButtonsModal').style.display === 'flex') {
+                    closeModal('actionButtonsModal');
+                }
+                return;
+            }
+
+            accounts.forEach((acc, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = acc.name;
+                modalAccountSelect.appendChild(option);
+            });
+
+            modalTitle.textContent = type === 'deposit' ? 'Deposit Funds' : 'Withdraw Funds';
+            modalTitle.innerHTML = type === 'deposit' ? '<i class="fas fa-plus-circle"></i> Deposit Funds' : '<i class="fas fa-minus-circle"></i> Withdraw Funds';
+            modalConfirmBtn.onclick = () => confirmTransaction(type);
+
+            document.getElementById('modalAmount').value = '';
+            document.getElementById('modalNote').value = '';
+            modal.style.display = 'flex';
+        }
+
+        function openTransferModal() {
+            const modal = document.getElementById('transferModal');
+            const fromAccountSelect = document.getElementById('transferFromAccount');
+            const toAccountSelect = document.getElementById('transferToAccount');
+
+            fromAccountSelect.innerHTML = '';
+            toAccountSelect.innerHTML = '';
+
+            if (accounts.length < 2) {
+                alert("You need at least two accounts to perform a transfer.");
+                // Ensure actionButtonsModal is closed if opened
+                if (document.getElementById('actionButtonsModal').style.display === 'flex') {
+                    closeModal('actionButtonsModal');
+                }
+                return;
+            }
+
+            accounts.forEach((acc, index) => {
+                const optionFrom = document.createElement('option');
+                optionFrom.value = index;
+                optionFrom.textContent = acc.name;
+                fromAccountSelect.appendChild(optionFrom);
+
+                const optionTo = document.createElement('option');
+                optionTo.value = index;
+                optionTo.textContent = acc.name;
+                toAccountSelect.appendChild(optionTo);
+            });
+
+            // Pre-select different accounts if possible
+            if (accounts.length >= 2) {
+                fromAccountSelect.value = 0;
+                toAccountSelect.value = 1;
+            }
+
+            document.getElementById('transferAmount').value = '';
+            document.getElementById('transferNote').value = '';
+            modal.style.display = 'flex';
+        }
+
+        function resetAllAndCloseModal() {
+            resetAll();
+            closeModal('actionButtonsModal');
+        }
+
+        // --- Account & Transaction Logic ---
+
+        function saveAccountDetails() {
+            const name = document.getElementById("accName").value.trim();
+            const balance = parseFloat(document.getElementById("accBalance").value);
+            const imageFile = document.getElementById("accImage").files[0];
+            const editIndex = document.getElementById('editAccountIndex').value;
+            const isEditing = editIndex !== "";
+
+            if (!name) {
+                alert("Please enter a valid account name.");
+                return;
+            }
+            if (!isEditing && (isNaN(balance) || balance < 0)) {
+                 alert("Please enter a non-negative initial balance for a new account.");
+                 return;
+            }
+
+            // Check for duplicate name (case-insensitive), excluding the current account if editing
+            const duplicateAccount = accounts.find((acc, idx) =>
+                acc.name.toLowerCase() === name.toLowerCase() && (isEditing ? idx !== parseInt(editIndex) : true)
+            );
+            if (duplicateAccount) {
+                alert("An account with this name already exists. Please choose a different name.");
+                return;
+            }
+
+            const processSave = (imgData = null) => {
+                if (isEditing) {
+                    const currentAccount = accounts[parseInt(editIndex)];
+                    currentAccount.name = name;
+                    if (imageFile) { // Only update image if a new file was selected
+                        currentAccount.image = imgData;
+                    }
+                    // Balance remains untouched as per requirement for edit
+                } else {
+                    const newAccount = { name, balance, image: imgData, transactions: [] };
+                    if (balance > 0) {
+                        newAccount.transactions.push({
+                            type: "deposit",
+                            amount: balance,
+                            note: "Initial Balance",
+                            date: new Date().toISOString()
+                        });
+                    }
+                    accounts.push(newAccount);
+                }
+                saveAccounts();
+                updateUI();
+                closeModal('createAccountModal');
+            };
+
+            if (imageFile) {
+                const reader = new FileReader();
+                reader.onload = (e) => processSave(e.target.result);
+                reader.readAsDataURL(imageFile);
+            } else {
+                processSave(); // Process save without an image, possibly keeping existing or null
+            }
+        }
+
+
+        function confirmTransaction(type) {
+            const index = parseInt(document.getElementById('modalAccountSelect').value);
+            const amount = parseFloat(document.getElementById('modalAmount').value);
+            const note = document.getElementById('modalNote').value.trim();
+
+            if (isNaN(amount) || amount <= 0) {
+                alert("Please enter a valid positive amount.");
+                return;
+            }
+
+            const currentAccount = accounts[index];
+
+            if (type === "withdraw" && currentAccount.balance < amount) {
+                if (!confirm("Warning: This withdrawal will result in a negative balance. Do you want to proceed?")) {
+                    return;
+                }
+            }
+
+            if (type === "deposit") {
+                currentAccount.balance += amount;
+            } else { // withdraw
+                currentAccount.balance -= amount;
+            }
+            currentAccount.transactions.push({ type, amount, note, date: new Date().toISOString() });
+            saveAccounts();
+            updateUI();
+            closeModal('transactionModal');
+        }
+
+        function confirmTransfer() {
+            const fromIndex = parseInt(document.getElementById('transferFromAccount').value);
+            const toIndex = parseInt(document.getElementById('transferToAccount').value);
+            const amount = parseFloat(document.getElementById('transferAmount').value);
+            const note = document.getElementById('transferNote').value.trim();
+            const timestamp = new Date().toISOString();
+
+            if (fromIndex === toIndex) {
+                alert("Source and destination accounts cannot be the same.");
+                return;
+            }
+            if (isNaN(amount) || amount <= 0) {
+                alert("Please enter a valid positive amount for the transfer.");
+                return;
+            }
+
+            const fromAccount = accounts[fromIndex];
+            const toAccount = accounts[toIndex];
+
+            if (fromAccount.balance < amount) {
+                if (!confirm(`Warning: Transferring GHS ${amount.toFixed(2)} from ${fromAccount.name} will result in a negative balance. Do you want to proceed?`)) {
+                    return;
+                }
+            }
+
+            // Perform transfer
+            fromAccount.balance -= amount;
+            toAccount.balance += amount;
+
+            // Log transactions for both accounts
+            fromAccount.transactions.push({
+                type: "withdraw",
+                amount: amount,
+                note: `Transfer to ${toAccount.name}${note ? ': ' + note : ''}`,
+                date: timestamp
+            });
+            toAccount.transactions.push({
+                type: "deposit",
+                amount: amount,
+                note: `Transfer from ${fromAccount.name}${note ? ': ' + note : ''}`,
+                date: timestamp
+            });
+
+            saveAccounts();
+            updateUI();
+            closeModal('transferModal');
+        }
+
+        function deleteAccount(index) {
+            if (confirm(`Are you sure you want to delete account "${accounts[index].name}" and all its transactions? This action cannot be undone.`)) {
+                accounts.splice(index, 1);
+                saveAccounts();
+                updateUI();
+            }
+        }
+
+        function resetAll() {
+            if (confirm("This will delete ALL accounts and transactions permanently. Are you absolutely sure? This action cannot be undone.")) {
+                accounts = [];
+                saveAccounts();
+                updateUI();
+            }
+        }
+
+        // --- Export Functions ---
+
+        function exportCSV() {
+            let csv = "Account Name,Transaction Type,Amount,Note,Date/Time\n";
+            accounts.forEach(account => {
+                account.transactions.forEach(transaction => {
+                    const cleanNote = `"${transaction.note.replace(/"/g, '""')}"`; // Handle commas and quotes in notes
+                    const dateTime = new Date(transaction.date).toLocaleString('en-GH', {
+                        year: 'numeric', month: 'numeric', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit',
+                        hour12: false // 24-hour format
+                    });
+                    csv += `"${account.name}","${transaction.type}",${transaction.amount},${cleanNote},"${dateTime}"\n`;
+                });
+            });
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "account_transactions.csv";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let yPos = 20;
+            const pageHeight = doc.internal.pageSize.height;
+            const pageWidth = doc.internal.pageSize.width;
+            const margin = 14;
+
+            // --- Header ---
+            doc.setFontSize(18);
+            doc.text("Account Balance Report", margin, yPos);
+            yPos += 10;
+            doc.setFontSize(12);
+            doc.text(`Date: ${new Date().toLocaleDateString('en-GH')}`, margin, yPos);
+            doc.text(`Total Net Balance: GHS ${calculateTotalBalance().toFixed(2)}`, margin, yPos + 7);
+            yPos += 20;
+
+            // --- Account Balances Summary ---
+            if (accounts.length === 0) {
+                doc.setFontSize(12);
+                doc.text("No accounts to report.", margin, yPos);
+                yPos += 10;
+            } else {
+                doc.setFontSize(14);
+                doc.text("Account Balances:", margin, yPos);
+                yPos += 8;
+                accounts.forEach(account => {
+                    if (yPos > pageHeight - margin) { // Check if new page is needed
+                        doc.addPage();
+                        yPos = margin;
+                    }
+                    doc.setFontSize(12);
+                    doc.text(`- ${account.name}: GHS ${account.balance.toFixed(2)}`, margin + 5, yPos);
+                    yPos += 7;
+                });
+                yPos += 10;
+            }
+
+            // --- All Transactions History ---
+            const allTransactions = getAllTransactions().sort((a, b) => new Date(b.date) - new Date(a.date));
+            if (allTransactions.length === 0) {
+                doc.setFontSize(12);
+                doc.text("No transactions to report.", margin, yPos);
+                yPos += 10;
+            } else {
+                doc.setFontSize(14);
+                doc.text("All Transactions History:", margin, yPos);
+                yPos += 8;
+                allTransactions.forEach(t => {
+                    if (yPos > pageHeight - margin) { // Check if new page is needed for transactions
+                        doc.addPage();
+                        yPos = margin;
+                    }
+                    doc.setFontSize(10);
+                    const type = t.type.charAt(0).toUpperCase() + t.type.slice(1);
+                    const amount = `GHS ${t.amount.toFixed(2)}`;
+                    const dateTime = new Date(t.date).toLocaleString('en-GH', {
+                        year: 'numeric', month: 'numeric', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit',
+                        hour12: false
+                    });
+                    const note = t.note ? ` - ${t.note}` : '';
+                    doc.text(`• ${type} ${amount} on ${t.accountName} - ${dateTime}${note}`, margin + 5, yPos);
+                    yPos += 6;
+                });
+                yPos += 10;
+            }
+
+            // --- Charts Section ---
+            // Monthly Trend Chart
+            doc.addPage();
+            yPos = margin;
+            doc.setFontSize(16);
+            doc.text("Monthly Balance Trends", margin, yPos);
+            yPos += 10;
+
+            const monthlyChartCanvas = document.getElementById('monthlyChart');
+            if (monthlyChartCanvas && accounts.some(acc => acc.transactions.length > 0)) {
+                // Temporarily ensure chart is visible and rendered before converting to image
+                const monthlyChartContainer = document.getElementById('monthlyTrendChart');
+                const wasHidden = monthlyChartContainer.style.display === 'none';
+                if (wasHidden) {
+                    monthlyChartContainer.style.display = 'block';
+                    drawMonthlyChart(); // Redraw to ensure it's current
+                }
+
+                const monthlyChartImg = monthlyChartCanvas.toDataURL('image/png');
+                const imgWidth = 180; // Standard width for A4 page
+                const imgHeight = (monthlyChartCanvas.height * imgWidth) / monthlyChartCanvas.width; // Maintain aspect ratio
+                doc.addImage(monthlyChartImg, 'PNG', (pageWidth - imgWidth) / 2, yPos, imgWidth, imgHeight);
+                yPos += imgHeight + 10;
+
+                if (wasHidden) {
+                    monthlyChartContainer.style.display = 'none'; // Hide it back
+                }
+            } else {
+                doc.setFontSize(12);
+                doc.text("No monthly trend data available to display.", margin, yPos);
+                yPos += 10;
+            }
+
+            // Account Comparison Chart
+            doc.addPage();
+            yPos = margin;
+            doc.setFontSize(16);
+            doc.text("Account Comparison (Current Balances)", margin, yPos);
+            yPos += 10;
+
+            const comparisonChartCanvas = document.getElementById('comparisonChart');
+            if (comparisonChartCanvas && accounts.length > 0) {
+                // Temporarily ensure chart is visible and rendered before converting to image
+                const comparisonChartContainer = document.getElementById('accountComparisonChart');
+                const wasHidden = comparisonChartContainer.style.display === 'none';
+                if (wasHidden) {
+                    comparisonChartContainer.style.display = 'block';
+                    drawAccountComparisonChart(); // Redraw to ensure it's current
+                }
+
+                const comparisonChartImg = comparisonChartCanvas.toDataURL('image/png');
+                const imgWidth = 180; // Standard width for A4 page
+                const imgHeight = (comparisonChartCanvas.height * imgWidth) / comparisonChartCanvas.width; // Maintain aspect ratio
+                doc.addImage(comparisonChartImg, 'PNG', (pageWidth - imgWidth) / 2, yPos, imgWidth, imgHeight);
+                yPos += imgHeight + 10;
+
+                if (wasHidden) {
+                    comparisonChartContainer.style.display = 'none'; // Hide it back
+                }
+            } else {
+                doc.setFontSize(12);
+                doc.text("No account comparison data available to display.", margin, yPos);
+                yPos += 10;
+            }
+
+
+            doc.save("AccountReport.pdf");
+        }
+
+        // --- Calculations & Charting ---
+
+        function calculateTotalBalance() {
+            return accounts.reduce((total, acc) => total + acc.balance, 0);
+        }
+
+        function drawMonthlyChart() {
+            const months = {};
+            accounts.forEach(a => {
+                a.transactions.forEach(t => {
+                    const m = new Date(t.date);
+                    // Format: YYYY-MM
+                    const key = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`;
+                    if (!months[key]) months[key] = { income: 0, expense: 0, net: 0 };
+
+                    if (t.type === "deposit") {
+                        months[key].income += t.amount;
+                        months[key].net += t.amount;
+                    } else {
+                        months[key].expense += t.amount;
+                        months[key].net -= t.amount;
+                    }
+                });
+            });
+
+            const labels = Object.keys(months).sort(); // Sort months chronologically
+            const netBalances = labels.map(month => months[month].net);
+
+            const ctx = document.getElementById("monthlyChart").getContext("2d");
+            if (monthlyChartInstance) {
+                monthlyChartInstance.destroy(); // Destroy existing chart instance
+            }
+
+            const isDarkMode = document.body.classList.contains('dark');
+            const textColor = isDarkMode ? '#e0e0e0' : '#343a40';
+            const gridColor = isDarkMode ? 'rgba(200, 200, 200, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+            monthlyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Net Monthly Change (GHS)',
+                        data: netBalances,
+                        backgroundColor: netBalances.map(value => value >= 0 ? '#28a745' : '#dc3545'), // Green for positive, red for negative
+                        borderColor: netBalances.map(value => value >= 0 ? '#218838' : '#c82333'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor },
+                            title: {
+                                display: true,
+                                text: 'Month',
+                                color: textColor
+                            }
+                        },
+                        y: {
+                            beginAtZero: false, // Allow negative values for net change
+                            grid: { color: gridColor },
+                            ticks: { color: textColor },
+                            title: {
+                                display: true,
+                                text: 'Net Change (GHS)',
+                                color: textColor
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: textColor
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += 'GHS ' + context.parsed.y.toFixed(2);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function drawAccountComparisonChart() {
+            // Use the currently sorted accounts for the comparison chart
+            const accountNames = sortedAccountsForOverview.map(a => a.name);
+            const accountBalances = sortedAccountsForOverview.map(a => a.balance);
+
+            const ctx = document.getElementById("comparisonChart").getContext("2d");
+            if (comparisonChartInstance) {
+                comparisonChartInstance.destroy();
+            }
+
+            const isDarkMode = document.body.classList.contains('dark');
+            const textColor = isDarkMode ? '#e0e0e0' : '#343a40';
+            const gridColor = isDarkMode ? 'rgba(200, 200, 200, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+            comparisonChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: accountNames,
+                    datasets: [{
+                        label: 'Current Balance (GHS)',
+                        data: accountBalances,
+                        backgroundColor: accountBalances.map(value => value >= 0 ? '#4a69bd' : '#dc3545'), // Blue for positive, red for negative
+                        borderColor: accountBalances.map(value => value >= 0 ? '#3c5aa6' : '#c82333'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor },
+                            title: {
+                                display: true,
+                                text: 'Account Name',
+                                color: textColor
+                            }
+                        },
+                        y: {
+                            beginAtZero: true, // Balances can be zero or negative, but start from 0 for comparison
+                            grid: { color: gridColor },
+                            ticks: { color: textColor },
+                            title: {
+                                display: true,
+                                text: 'Balance (GHS)',
+                                color: textColor
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: textColor
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += 'GHS ' + context.parsed.y.toFixed(2);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function openChartTab(evt, tabName) {
+            let i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+                tabcontent[i].classList.remove('active');
+            }
+            tablinks = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).style.display = "block";
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add("active");
+
+            // Re-render chart when its tab becomes active to handle responsiveness and dark mode colors
+            if (tabName === 'monthlyTrendChart') {
+                drawMonthlyChart();
+            } else if (tabName === 'accountComparisonChart') {
+                drawAccountComparisonChart();
+            }
+        }
+
+
+        // --- Main UI Update Function ---
+
+        function updateUI() {
+            // Manage create account form visibility
+            const createAccountModal = document.getElementById("createAccountModal");
+            const addNewAccountBtnContainer = document.getElementById("addNewAccountButtonContainer");
+
+            if (accounts.length > 0) {
+                // If accounts exist, hide the modal and show the "Add New Account" button
+                createAccountModal.style.display = 'none';
+                addNewAccountBtnContainer.style.display = 'block';
+            } else {
+                // If no accounts, ensure "Add New Account" button is hidden
+                // and automatically open the "Create New Account" modal.
+                addNewAccountBtnContainer.style.display = 'none';
+                // Only open modal if it's not already open (e.g., after initial load)
+                if (createAccountModal.style.display !== 'flex') {
+                    openCreateAccountModal('new');
+                }
+            }
+
+            // Update total balance
+            document.getElementById("totalBalance").textContent = `GHS ${calculateTotalBalance().toFixed(2)}`;
+            document.getElementById("totalBalance").style.color = calculateTotalBalance() >= 0 ? 'white' : '#FFDDDD';
+
+            // Populate account filter dropdowns for centralized history (desktop and mobile modal)
+            const filterAccountSelects = [
+                document.getElementById('filterAccount'),
+                document.getElementById('filterAccountModal')
+            ];
+            filterAccountSelects.forEach(selectElement => {
+                const currentSelectedValue = selectElement.value; // Preserve current selection
+                selectElement.innerHTML = '<option value="all">All Accounts</option>';
+                accounts.forEach(acc => {
+                    const option = document.createElement('option');
+                    option.value = acc.name;
+                    option.textContent = acc.name;
+                    selectElement.appendChild(option);
+                });
+                // Restore previous selection if it still exists
+                if (Array.from(selectElement.options).some(option => option.value === currentSelectedValue)) {
+                    selectElement.value = currentSelectedValue;
+                }
+            });
+
+
+            // Sort and display accounts overview
+            const sort = document.getElementById("sortSelect").value;
+            sortedAccountsForOverview = [...accounts]; // Always start with a fresh copy of accounts
+
+            if (sort === "name") {
+                sortedAccountsForOverview.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (sort === "high") {
+                sortedAccountsForOverview.sort((a, b) => b.balance - a.balance);
+            } else if (sort === "low") {
+                sortedAccountsForOverview.sort((a, b) => a.balance - b.balance);
+            }
+
+            const accountList = document.getElementById("accountList");
+            accountList.innerHTML = "";
+            if (sortedAccountsForOverview.length === 0) {
+                accountList.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;">No accounts added yet. Click "Add New Account" or "Create New Account" above!</p>';
+            } else {
+                sortedAccountsForOverview.forEach((a, i) => {
+                    // Find original index to ensure delete/edit functions work on the correct account object
+                    const originalIndex = accounts.indexOf(a);
+
+                    const card = document.createElement("div");
+                    card.className = "card account-item";
+
+                    const logoSrc = a.image
+                        ? a.image
+                        : `https://via.placeholder.com/60/4A69BD/FFFFFF?text=${a.name.charAt(0).toUpperCase()}`;
+
+                    card.innerHTML = `
+                        <div class="account-header">
+                            <div class="account-title">
+                                <img src="${logoSrc}" alt="${a.name} logo">
+                                <h3>${a.name}</h3>
+                            </div>
+                            <strong style="color:${a.balance >= 0 ? '#28a745' : '#dc3545'}">GHS ${a.balance.toFixed(2)}</strong>
+                        </div>
+                        <div class="account-actions-row">
+                            <button onclick="openCreateAccountModal('edit', ${originalIndex})"><i class="fas fa-edit"></i> Edit Account</button>
+                            <button class="danger" onclick="deleteAccount(${originalIndex})"><i class="fas fa-trash-alt"></i> Delete Account</button>
+                        </div>
+                    `;
+                    accountList.appendChild(card);
+                });
+            }
+
+            // Update visibility of controls and filters based on mobile/desktop view
+            if (isMobileView) {
+                document.getElementById('desktopControls').style.display = 'none';
+                document.getElementById('mobileActionsButton').style.display = 'block';
+                document.getElementById('desktopHistoryControls').style.display = 'none';
+                document.getElementById('mobileFilterButtonContainer').style.display = 'block';
+            } else {
+                document.getElementById('desktopControls').style.display = 'flex';
+                document.getElementById('mobileActionsButton').style.display = 'none';
+                document.getElementById('desktopHistoryControls').style.display = 'grid';
+                document.getElementById('mobileFilterButtonContainer').style.display = 'none';
+            }
+
+            // Set the correct initial value for the log limit dropdowns
+            document.getElementById('logLimitSelect').value = transactionDisplayLimit.toString();
+            document.getElementById('logLimitSelectModal').value = transactionDisplayLimit.toString();
+
+            filterAndDisplayAllTransactions(); // Update history after other UI elements
+        }
+
+        function getAllTransactions() {
+            let allTransactions = [];
+            accounts.forEach(account => {
+                account.transactions.forEach(t => {
+                    allTransactions.push({
+                        accountName: account.name,
+                        type: t.type,
+                        amount: t.amount,
+                        note: t.note,
+                        date: t.date // ISO string
+                    });
+                });
+            });
+            return allTransactions;
+        }
+
+        function filterAndDisplayAllTransactions() {
+            let transactions = getAllTransactions();
+
+            // Get filter values from the appropriate source (desktop or mobile modal)
+            const currentFilterAccount = isMobileView ? document.getElementById('filterAccountModal').value : document.getElementById('filterAccount').value;
+            const currentFilterType = isMobileView ? document.getElementById('filterTypeModal').value : document.getElementById('filterType').value;
+            const currentFilterStartDate = isMobileView ? document.getElementById('filterStartDateModal').value : document.getElementById('filterStartDate').value;
+            const currentFilterEndDate = isMobileView ? document.getElementById('filterEndDateModal').value : document.getElementById('filterEndDate').value;
+            const currentSortOrder = isMobileView ? document.getElementById('sortHistoryModal').value : document.getElementById('sortHistory').value;
+
+
+            // Apply Filters
+            if (currentFilterAccount !== 'all') {
+                transactions = transactions.filter(t => t.accountName === currentFilterAccount);
+            }
+            if (currentFilterType !== 'all') {
+                transactions = transactions.filter(t => t.type === currentFilterType);
+            }
+            if (currentFilterStartDate) {
+                const start = new Date(currentFilterStartDate + 'T00:00:00'); // Ensure start of day
+                transactions = transactions.filter(t => new Date(t.date) >= start);
+            }
+            if (currentFilterEndDate) {
+                const end = new Date(currentFilterEndDate + 'T23:59:59'); // Ensure end of day
+                transactions = transactions.filter(t => new Date(t.date) <= end);
+            }
+
+            // Apply Sorting
+            switch (currentSortOrder) {
+                case 'dateDesc':
+                    transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    break;
+                case 'dateAsc':
+                    transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    break;
+                case 'amountDesc':
+                    transactions.sort((a, b) => b.amount - a.amount);
+                    break;
+                case 'amountAsc':
+                    transactions.sort((a, b) => a.amount - b.amount);
+                    break;
+            }
+
+            const historyContainer = document.getElementById('allTransactionsHistory');
+            historyContainer.innerHTML = ''; // Clear previous entries
+
+            const totalTransactions = transactions.length;
+            const transactionsToDisplay = transactions.slice(0, transactionDisplayLimit);
+
+            if (transactionsToDisplay.length === 0) {
+                historyContainer.innerHTML = '<p class="transaction-item" style="justify-content: center; font-style: italic; color: #6c757d;">No transactions match the selected filters.</p>';
+            } else {
+                transactionsToDisplay.forEach(t => {
+                    const transactionDiv = document.createElement('div');
+                    transactionDiv.className = 'transaction-item';
+
+                    const amountSign = t.type === "deposit" ? '+' : '-' ;
+                    const amountColor = t.type === "deposit" ? '#28a745' : '#dc3545';
+                    const formattedDateTime = new Date(t.date).toLocaleString('en-GH', {
+                        year: 'numeric', month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit',
+                        hour12: true
+                    });
+
+                    transactionDiv.innerHTML = `
+                        <div class="details">
+                            <strong>${amountSign} GHS ${t.amount.toFixed(2)}</strong> on <strong>${t.accountName}</strong> <span style="font-size:0.9em; color: ${amountColor};">(${t.type})</span><br>
+                            <span class="transaction-note">${t.note || 'No note'}</span>
+                            <small>${formattedDateTime}</small>
+                        </div>
+                    `;
+                    historyContainer.appendChild(transactionDiv);
+                });
+            }
+
+            // Pagination Controls
+            const paginationContainer = document.getElementById('historyPagination');
+            paginationContainer.innerHTML = '';
+
+            if (totalTransactions > transactionDisplayLimit) {
+                const showMoreBtn = document.createElement('button');
+                showMoreBtn.textContent = 'Show More';
+                showMoreBtn.onclick = () => {
+                    transactionDisplayLimit += 10; // Increase by 10 each time
+                    filterAndDisplayAllTransactions();
+                };
+                paginationContainer.appendChild(showMoreBtn);
+            }
+
+            // Only show "Show Less" if more than the default limit is displayed
+            const defaultLimit = isMobileView ? 5 : 10;
+            if (transactionDisplayLimit > defaultLimit && totalTransactions > defaultLimit) {
+                 const showLessBtn = document.createElement('button');
+                 showLessBtn.textContent = 'Show Less';
+                 showLessBtn.onclick = () => {
+                     transactionDisplayLimit = defaultLimit; // Reset to default limit
+                     filterAndDisplayAllTransactions();
+                 };
+                 paginationContainer.appendChild(showLessBtn);
+            }
+        }
+
+        function setTransactionDisplayLimit(limit) {
+            transactionDisplayLimit = parseInt(limit);
+        }
+
+        // Applies filters from mobile modal to the main filter elements and then refreshes.
+        // This keeps the state consistent for desktop view if user switches back.
+        function applyMobileFilter(filterType) {
+            // Update desktop filter elements with modal values
+            document.getElementById('filterAccount').value = document.getElementById('filterAccountModal').value;
+            document.getElementById('filterType').value = document.getElementById('filterTypeModal').value;
+            document.getElementById('filterStartDate').value = document.getElementById('filterStartDateModal').value;
+            document.getElementById('filterEndDate').value = document.getElementById('filterEndDateModal').value;
+            document.getElementById('sortHistory').value = document.getElementById('sortHistoryModal').value;
+            document.getElementById('logLimitSelect').value = document.getElementById('logLimitSelectModal').value;
+
+            // Update the internal display limit variable
+            transactionDisplayLimit = parseInt(document.getElementById('logLimitSelectModal').value);
+
+            filterAndDisplayAllTransactions();
+        }
+
+        function clearAllHistoryFilters() {
+            const defaultLimit = isMobileView ? 5 : 10;
+
+            // Clear and reset for desktop inputs
+            document.getElementById('filterAccount').value = 'all';
+            document.getElementById('filterType').value = 'all';
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            document.getElementById('sortHistory').value = 'dateDesc'; // Default sort
+            document.getElementById('logLimitSelect').value = defaultLimit.toString();
+
+
+            // Also clear and reset for the mobile modal's inputs
+            document.getElementById('filterAccountModal').value = 'all';
+            document.getElementById('filterTypeModal').value = 'all';
+            document.getElementById('filterStartDateModal').value = '';
+            document.getElementById('filterEndDateModal').value = '';
+            document.getElementById('sortHistoryModal').value = 'dateDesc';
+            document.getElementById('logLimitSelectModal').value = defaultLimit.toString();
+
+            // Reset internal display limit
+            transactionDisplayLimit = defaultLimit;
+
+            filterAndDisplayAllTransactions();
+        }
+
+
+        // --- Initialization ---
+
+        function initializeApp() {
+            // Set default dark mode based on user preference
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.body.classList.add('dark');
+            }
+
+            // Call updateUI immediately to render accounts and total balance, and set up mobile/desktop views
+            // This ensures data from localStorage is rendered right away.
+            updateUI();
+
+            // Load FontAwesome icons asynchronously
+            const fontAwesomeScript = document.createElement('script');
+            fontAwesomeScript.src = 'https://kit.fontawesome.com/a076d05399.js';
+            fontAwesomeScript.crossOrigin = 'anonymous';
+            document.head.appendChild(fontAwesomeScript);
+
+            // Set the first chart tab as active and draw its chart
+            const firstTabButton = document.querySelector('.tabs .tab-button');
+            if (firstTabButton) {
+                firstTabButton.click(); // Programmatically click to activate and draw chart
+            }
+
+            // Add an event listener for screen resize to re-evaluate mobile view
+            window.addEventListener('resize', () => {
+                const newIsMobileView = window.matchMedia("(max-width: 768px)").matches;
+                // Only update if view type changed to avoid unnecessary reloads
+                if (newIsMobileView !== isMobileView) {
+                    isMobileView = newIsMobileView; // Update the global variable
+                    // Re-set the default transaction display limit based on new view
+                    transactionDisplayLimit = isMobileView ? 5 : 10;
+                    // Re-render the UI to apply new display rules
+                    updateUI();
+                }
+            });
+        }
+
+        // Run on page load
+        initializeApp();
+    </script>
+</body>
+</html>
